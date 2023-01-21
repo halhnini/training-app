@@ -1,0 +1,91 @@
+version: '3'
+services:
+
+  #PHP Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app
+    depends_on:
+      - db
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    working_dir: /var/www/html
+    ports:
+      - "8085:80"
+    volumes:
+      - ./:/var/www/html
+    networks:
+      app-network:
+        aliases:
+          - app.rabbit.localhost
+
+  #Nginx Service
+#  webserver:
+#    image: nginx:alpine
+#    container_name: webserver
+#    restart: unless-stopped
+#    tty: true
+#    working_dir: /var/www
+#    ports:
+#      - "8085:80"
+#      - "443:443"
+#    volumes:
+#      - ./:/var/www
+#      - ./nginx/conf.d/:/etc/nginx/conf.d/
+#    networks:
+#      app-network:
+#        aliases:
+#          - app.rabbit.localhost
+
+  #MySQL Service
+  db:
+    image: mysql:5.7.22
+    container_name: db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: landa
+      MYSQL_ROOT_PASSWORD: your_mysql_root_password
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - dbdata:/var/lib/mysql/
+    networks:
+      - app-network
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8086:80
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      app-network:
+        aliases:
+          - app.phpmyadmin.localhost
+
+  maildev:
+    image: maildev/maildev
+    ports:
+      - "1080:1080"
+    networks:
+      app-network:
+        aliases:
+          - app.maildev.localhost
+
+#Docker Networks
+networks:
+  app-network:
+    driver: bridge
+#Volumes
+volumes:
+  dbdata:
+    driver: local
